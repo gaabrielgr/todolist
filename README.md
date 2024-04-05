@@ -48,10 +48,6 @@ Acesse a console H2 em `http://localhost:8080/h2-console` para visualizar e gere
 
 -  **Spring Data JPA**
 
--  **Spring Security**
-
--  **SpringDoc OpenAPI**
-
 -  **H2 Database**
 
 -  **Lombok**
