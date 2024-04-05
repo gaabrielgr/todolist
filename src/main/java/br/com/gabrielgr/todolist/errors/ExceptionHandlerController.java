@@ -6,7 +6,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-@ControllerAdvice // Sua função é tratar exceções globais da aplicação e centralizar o tratamento de exceções em um único lugar.
+@ControllerAdvice 
 public class ExceptionHandlerController {
 
   @ExceptionHandler(HttpMessageNotReadableException.class)
