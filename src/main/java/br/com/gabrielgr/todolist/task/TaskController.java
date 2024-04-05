@@ -1,12 +1,11 @@
 package br.com.gabrielgr.todolist.task;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,70 +14,60 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import br.com.gabrielgr.todolist.utils.Utils;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/tasks")
 public class TaskController {
+  
+  private TaskService taskService;
 
-  @Autowired
-  private ITaskRepository taskRepository;
+  public TaskController(TaskService taskService) {
+    this.taskService = taskService;
+  }
 
   @PostMapping("/")
-  public ResponseEntity<?> create(@RequestBody TaskModel taskModel, HttpServletRequest request) {
-    var idUser = request.getAttribute("idUser");
-    taskModel.setIdUser((UUID) idUser);
+  public ResponseEntity<Object> createTask(@RequestBody TaskModel taskModel, HttpServletRequest request) {
+    try {
+      UUID idUser = (UUID) request.getAttribute("idUser");
+      TaskModel createdTask = taskService.create(taskModel, idUser);
+      return ResponseEntity.status(HttpStatus.CREATED).body(createdTask);
 
-    var currentDate = LocalDateTime.now();
-
-    if (currentDate.isAfter(taskModel.getStartAt()) || currentDate.isAfter(taskModel.getEndAt())) {
-      return ResponseEntity
-          .status(HttpStatus.BAD_REQUEST)
-          .body("A data de início / data de término devem ser maior que a data atual.");
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
-
-    if (taskModel.getStartAt().isAfter(taskModel.getEndAt())) {
-      return ResponseEntity
-          .status(HttpStatus.BAD_REQUEST)
-          .body("A data de início deve ser menor que a data de término.");
-    }
-
-    var task = this.taskRepository.save(taskModel);
-    return ResponseEntity.status(HttpStatus.OK).body(task);
-
   }
 
   @GetMapping("/")
   public List<TaskModel> list(HttpServletRequest request) {
-    var idUser = request.getAttribute("idUser");
-    var tasks = this.taskRepository.findByIdUser((UUID) idUser);
+    UUID idUser = (UUID) request.getAttribute("idUser");
+    List<TaskModel> tasks = this.taskService.findAllTasksByUserId(idUser);
     return tasks;
-
   }
 
   @PutMapping("/{id}")
-  public ResponseEntity update(@RequestBody TaskModel taskModel, @PathVariable UUID id, HttpServletRequest request) {
-    var task = this.taskRepository.findById(id).orElse(null);
+  public ResponseEntity<Object> update(@PathVariable UUID id, @RequestBody TaskModel taskModel,
+      HttpServletRequest request) {
+    try {
+      UUID idUser = (UUID) request.getAttribute("idUser");
+      TaskModel updatedTask = this.taskService.update(id, taskModel, idUser);
+      return ResponseEntity.ok(updatedTask);
 
-    if (task == null) {
-      return ResponseEntity
-          .status(HttpStatus.BAD_REQUEST)
-          .body("Tarefa não encontrada.");
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
-
-    var idUser = request.getAttribute("idUser");
-
-    if (!task.getIdUser().equals(idUser)) {
-      return ResponseEntity
-          .status(HttpStatus.UNAUTHORIZED)
-          .body("Você não tem permissão para alterar essa tarefa.");
-    }
-
-    Utils.copyNonNullProperties(taskModel, task);
-    
-    var taskUpdate = this.taskRepository.save(task);
-    return ResponseEntity.ok(taskUpdate); 
-
   }
+
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Object> delete(@PathVariable UUID id, HttpServletRequest request) {
+    try {
+      UUID idUser = (UUID) request.getAttribute("idUser");
+      this.taskService.delete(id, idUser);
+      return ResponseEntity.ok().build();
+
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+  }
+
 }
